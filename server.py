@@ -48,6 +48,9 @@ def tcp_server_start():
             # Ожидание новых клиентов
             conn.close()
             conn, addr = None, None
+
+            sock.close()
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             continue
 
     conn.close()
