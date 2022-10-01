@@ -49,8 +49,12 @@ def tcp_server_start():
             conn.close()
             conn, addr = None, None
 
+            # Пересоздание сокета
             sock.close()
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Привязка сокета
+            sock.bind((host, PORT))
+            sock.listen(1)
             continue
 
     conn.close()
