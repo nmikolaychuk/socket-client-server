@@ -42,7 +42,7 @@ def tcp_server_start():
 
             # Отправка сообщения
             conn.send(mes.encode())
-        except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError):
+        except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError, TimeoutError):
             print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
                           "Ожидается новое подключение клиента...")
             # Ожидание новых клиентов
