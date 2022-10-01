@@ -67,7 +67,7 @@ def tcp_client_start():
         try:
             sock.send(mes.encode())
             data = sock.recv(1024)
-        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError):
+        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError):
             print_message("Произошёл разрыв установленного соединения...")
             # Попытка переподключения
             sock, is_recon_true = reconnect(sock, host, PORT)
