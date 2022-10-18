@@ -73,7 +73,7 @@ def tcp_client_start():
     while True:
         # Отправка сообщения серверу
         try:
-            sock.settimeout(2)
+            sock.settimeout(1)
             data = sock.recv(1024)
 
             if not data:

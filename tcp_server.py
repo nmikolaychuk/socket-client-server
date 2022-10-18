@@ -51,26 +51,19 @@ def tcp_server_start():
 
         try:
             # Ожидание сообщения от клиента
-            conn.settimeout(2)
+            conn.settimeout(1)
             data = conn.recv(1024)
             if not data:
                 raise ConnectionError
         except TimeoutError:
             try:
-                conn.send(b"")
-            except Exception:
-                print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
-                              "Ожидается новое подключение клиента...")
-                # Ожидание новых клиентов
-                conn.close()
-                conn, addr = None, None
-
-                # Пересоздание сокета
-                sock.close()
-                del sock
-                sock = create_socket(host, port)
+                sock.settimeout(1)
+                conn1, addr1 = sock.accept()
+            except TimeoutError:
                 continue
             else:
+                conn.close()
+                conn, addr = conn1, addr1
                 continue
         except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError):
             print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
