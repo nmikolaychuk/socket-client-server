@@ -13,6 +13,15 @@ def create_socket(host: str, port: int):
     return sock
 
 
+def is_enable_ping(conn):
+    try:
+        conn.send(b"ping")
+    except Exception:
+        return False
+    else:
+        return True
+
+
 def tcp_server_start():
     # Получение адреса сервера
     host, port = None, None
@@ -38,26 +47,31 @@ def tcp_server_start():
             except TimeoutError:
                 continue
 
-            print_message(f"Установлено соединение с клиентом {addr[1]}...")
+            print_message(f"Установлено соединение с клиентом {addr[0]}:{port} ({addr[1]})...")
 
         try:
             # Ожидание сообщения от клиента
             conn.settimeout(2)
             data = conn.recv(1024)
-
-            # Декодирование сообщения
-            data = data.decode()
-
             if not data:
                 raise ConnectionError
+        except TimeoutError:
+            try:
+                conn.send(b"")
+            except Exception:
+                print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
+                              "Ожидается новое подключение клиента...")
+                # Ожидание новых клиентов
+                conn.close()
+                conn, addr = None, None
 
-            print_message(f"Получено сообщение от клиента {addr[1]}: {data}")
-            mes, is_ok = input_message("Введите ответ для клиента")
-            if not is_ok:
-                break
-
-            # Отправка сообщения
-            conn.send(mes.encode())
+                # Пересоздание сокета
+                sock.close()
+                del sock
+                sock = create_socket(host, port)
+                continue
+            else:
+                continue
         except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError):
             print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
                           "Ожидается новое подключение клиента...")
@@ -70,8 +84,16 @@ def tcp_server_start():
             del sock
             sock = create_socket(host, port)
             continue
-        except TimeoutError:
-            continue
+
+            # Декодирование сообщения
+        data = data.decode()
+        print_message(f"Получено сообщение от клиента {addr[0]}:{port} ({addr[1]}): {data}")
+        mes, is_ok = input_message("Введите ответ для клиента")
+        if not is_ok:
+            break
+
+        # Отправка сообщения
+        conn.send(mes.encode())
 
     conn.close()
     sock.close()
