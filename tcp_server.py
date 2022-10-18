@@ -48,9 +48,12 @@ def tcp_server_start():
             if not data:
                 raise ConnectionError
 
-                # Декодирование сообщения
+            # Декодирование сообщения
             data = data.decode()
-            print_message(f"Получено сообщение от клиента {addr[0]}:{port} ({addr[1]}): {data}")
+            if not data.strip():
+                continue
+
+            print_message(f"Получено сообщение от клиента {addr[0]}:{port} ({addr[1]}): {data.lstrip()}")
             mes, is_ok = input_message("Введите ответ для клиента")
             if not is_ok:
                 break
@@ -59,15 +62,28 @@ def tcp_server_start():
             conn.settimeout(1)
             conn.send(mes.encode())
         except TimeoutError:
-            try:
-                sock.settimeout(1)
-                conn1, addr1 = sock.accept()
-            except TimeoutError:
-                continue
+            if sock.getsockname()[0] == socket.gethostbyname(socket.gethostname()):
+                try:
+                    sock.settimeout(1)
+                    conn1, addr1 = sock.accept()
+                except TimeoutError:
+                    continue
+                else:
+                    conn.close()
+                    conn, addr = conn1, addr1
+                    print_message("Ожидание сообщения от клиента.")
+                    continue
             else:
+                print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
+                              "Ожидается новое подключение клиента...")
+                # Ожидание новых клиентов
                 conn.close()
-                conn, addr = conn1, addr1
-                print_message("Ожидание сообщения от клиента.")
+                conn, addr = None, None
+
+                # Пересоздание сокета
+                sock.close()
+                del sock
+                sock = create_socket(host, port)
                 continue
         except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError):
             print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
