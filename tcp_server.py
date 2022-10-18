@@ -44,8 +44,20 @@ def tcp_server_start():
             # Ожидание сообщения от клиента
             conn.settimeout(1)
             data = conn.recv(1024)
+
             if not data:
                 raise ConnectionError
+
+                # Декодирование сообщения
+            data = data.decode()
+            print_message(f"Получено сообщение от клиента {addr[0]}:{port} ({addr[1]}): {data}")
+            mes, is_ok = input_message("Введите ответ для клиента")
+            if not is_ok:
+                break
+
+            # Отправка сообщения
+            conn.settimeout(1)
+            conn.send(mes.encode())
         except TimeoutError:
             try:
                 sock.settimeout(1)
@@ -55,6 +67,7 @@ def tcp_server_start():
             else:
                 conn.close()
                 conn, addr = conn1, addr1
+                print_message("Ожидание сообщения от клиента.")
                 continue
         except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError):
             print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
@@ -68,16 +81,6 @@ def tcp_server_start():
             del sock
             sock = create_socket(host, port)
             continue
-
-            # Декодирование сообщения
-        data = data.decode()
-        print_message(f"Получено сообщение от клиента {addr[0]}:{port} ({addr[1]}): {data}")
-        mes, is_ok = input_message("Введите ответ для клиента")
-        if not is_ok:
-            break
-
-        # Отправка сообщения
-        conn.send(mes.encode())
 
     conn.close()
     sock.close()
