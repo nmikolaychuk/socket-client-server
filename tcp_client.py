@@ -94,7 +94,14 @@ def tcp_client_start():
             except OSError:
                 continue
             else:
-                continue
+                print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
+                # Попытка переподключения
+                sock, is_recon_true = reconnect(sock, host, port)
+                # Если переподключение выполнено успешно - продолжение взаимодействия
+                if is_recon_true:
+                    input_and_send(sock)
+                    continue
+                break
 
         # Декодирование сообщения
         data = data.decode()
