@@ -1,7 +1,10 @@
 import socket
+import signal
+import sys
+import time
 
 from defaults import *
-from helpers import print_message, input_message
+from helpers import print_message, input_message, signal_handler
 
 
 def try_connect(sock, host, port):
@@ -34,66 +37,70 @@ def reconnect(sock, host, port):
         is_connect = try_connect(sock, host, port)
         if is_connect:
             is_recon_true = True
-            print_message(f"Установлено соединение с сервером {host}:{PORT}. Ожидание ответа...")
+            print_message(f"Установлено соединение с сервером {host}:{port}. Ожидание ответа...")
             break
+        time.sleep(1)
 
     return sock, is_recon_true
 
 
-def tcp_client_start():
-    # Получение адреса для подключения
-    host, is_ok = input_message("Введите адрес сервера для подключения (IPv4)")
+def input_and_send(sock):
+    # Формирование нового сообщения для клиента
+    mes, is_ok = input_message("Введите сообщение для сервера")
     if not is_ok:
-        return
+        sock.close()
+        exit(0)
+    sock.send(mes.encode())
+
+
+def tcp_client_start():
+    # Получение адреса сервера
+    host, port = sys.argv[1], int(sys.argv[2])
 
     # Создание сокета
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Подключение к серверу
-    is_connect = try_connect(sock, host, PORT)
+    is_connect = try_connect(sock, host, port)
 
     # Если возникла ошибка при подключении - выход
     if not is_connect:
         return
 
-    print_message(f"Установлено соединение с сервером {host}:{PORT}...")
-
-    mes, is_ok = input_message("Введите сообщение для сервера")
-    if not is_ok:
-        sock.close()
-        return
+    print_message(f"Установлено соединение с сервером {host}:{port}...")
+    # Отправка первого сообщения
+    input_and_send(sock)
 
     while True:
         # Отправка сообщения серверу
         try:
-            sock.send(mes.encode())
+            sock.settimeout(2)
             data = sock.recv(1024)
-        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError):
-            print_message("Произошёл разрыв установленного соединения...")
+
+            if not data:
+                raise ConnectionError()
+        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError):
+            print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
             # Попытка переподключения
-            sock, is_recon_true = reconnect(sock, host, PORT)
+            sock, is_recon_true = reconnect(sock, host, port)
             # Если переподключение выполнено успешно - продолжение взаимодействия
             if is_recon_true:
+                input_and_send(sock)
                 continue
             break
+        except TimeoutError:
+            continue
 
         # Декодирование сообщения
         data = data.decode()
-
-        print_message(f"Получен ответ от сервера {host}:{PORT}: {data}")
-
-        # Формирование нового сообщения для клиента
-        mes, is_ok = input_message("Введите сообщение для сервера")
-        if not is_ok:
-            break
+        print_message(f"Получен ответ от сервера {host}:{port}: {data}")
+        input_and_send(sock)
 
     sock.close()
 
 
 def main():
-    try:
-        tcp_client_start()
-    except KeyboardInterrupt:
-        print_message("Исполнение программы остановлено пользователем...")
+    signal.signal(signal.SIGINT, signal_handler)
+    tcp_client_start()
 
 
 if __name__ == "__main__":

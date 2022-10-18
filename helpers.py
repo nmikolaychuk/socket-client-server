@@ -1,4 +1,10 @@
 import datetime
+import sys
+
+
+def signal_handler(sig, frame):
+    print('Выполнение программы прервано пользователем!')
+    sys.exit(0)
 
 
 def print_message(text: str):

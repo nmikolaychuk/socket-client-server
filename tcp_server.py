@@ -1,32 +1,48 @@
 import socket
+import signal
+import sys
 
-from defaults import *
-from helpers import print_message, input_message
+from helpers import print_message, input_message, signal_handler
+
+
+def create_socket(host: str, port: int):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    sock.listen(1)
+    return sock
 
 
 def tcp_server_start():
     # Получение адреса сервера
-    host = socket.gethostbyname(socket.gethostname())
+    host, port = None, None
+    try:
+        host, port = sys.argv[1], int(sys.argv[2])
+    except IndexError:
+        print("Не указаны следующие аргументы: 1) адрес подключения; 2) порт подключения.")
+        exit(-1)
+
     # Создание сокета
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Привязка сокета
-    sock.bind((host, PORT))
-    sock.listen(1)
+    sock = create_socket(host, port)
 
     # Ожидание подключения
     print_message("Сервер ожидает подключения клиента...")
-    conn, addr = sock.accept()
-    print_message(f"Установлено соединение с клиентом {addr[1]}...")
-
+    conn, addr = None, None
     # Приём и передача сообщений
     while True:
         # Ожидание клиентов при неожиданном отключении последних
         if conn is None and addr is None:
-            conn, addr = sock.accept()
+            try:
+                sock.settimeout(1)
+                conn, addr = sock.accept()
+            except TimeoutError:
+                continue
+
             print_message(f"Установлено соединение с клиентом {addr[1]}...")
 
         try:
             # Ожидание сообщения от клиента
+            conn.settimeout(2)
             data = conn.recv(1024)
 
             # Декодирование сообщения
@@ -42,7 +58,7 @@ def tcp_server_start():
 
             # Отправка сообщения
             conn.send(mes.encode())
-        except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError, TimeoutError):
+        except (ConnectionResetError, ConnectionRefusedError, ConnectionError, ConnectionAbortedError):
             print_message("Произошёл непредвиденный разрыв соединения с клиентом. "
                           "Ожидается новое подключение клиента...")
             # Ожидание новых клиентов
@@ -51,10 +67,10 @@ def tcp_server_start():
 
             # Пересоздание сокета
             sock.close()
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # Привязка сокета
-            sock.bind((host, PORT))
-            sock.listen(1)
+            del sock
+            sock = create_socket(host, port)
+            continue
+        except TimeoutError:
             continue
 
     conn.close()
@@ -62,10 +78,8 @@ def tcp_server_start():
 
 
 def main():
-    try:
-        tcp_server_start()
-    except KeyboardInterrupt:
-        print_message("Исполнение программы остановлено пользователем...")
+    signal.signal(signal.SIGINT, signal_handler)
+    tcp_server_start()
 
 
 if __name__ == "__main__":
