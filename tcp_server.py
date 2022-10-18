@@ -13,15 +13,6 @@ def create_socket(host: str, port: int):
     return sock
 
 
-def is_enable_ping(conn):
-    try:
-        conn.send(b"ping")
-    except Exception:
-        return False
-    else:
-        return True
-
-
 def tcp_server_start():
     # Получение адреса сервера
     host, port = None, None
