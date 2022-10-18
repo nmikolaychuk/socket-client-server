@@ -78,6 +78,12 @@ def tcp_client_start():
 
             if not data:
                 raise ConnectionError
+
+            # Декодирование сообщения
+            data = data.decode()
+            print_message(f"Получен ответ от сервера {host}:{port}: {data}")
+            input_and_send(sock)
+
         except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError):
             print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
             # Попытка переподключения
@@ -88,10 +94,7 @@ def tcp_client_start():
                 continue
             break
         except TimeoutError:
-            # Подключение к серверу
-            try:
-                sock.connect((host, port))
-            except OSError:
+            if sock.getsockname()[0] == socket.gethostbyname(socket.gethostname()):
                 continue
             else:
                 print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
@@ -102,11 +105,6 @@ def tcp_client_start():
                     input_and_send(sock)
                     continue
                 break
-
-        # Декодирование сообщения
-        data = data.decode()
-        print_message(f"Получен ответ от сервера {host}:{port}: {data}")
-        input_and_send(sock)
 
     sock.close()
 
