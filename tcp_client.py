@@ -69,7 +69,6 @@ def tcp_client_start():
     print_message(f"Установлено соединение с сервером {host}:{port}...")
     # Отправка первого сообщения
     input_and_send(sock)
-
     while True:
         # Отправка сообщения серверу
         try:
@@ -95,6 +94,7 @@ def tcp_client_start():
             break
         except TimeoutError:
             if sock.getsockname()[0] == socket.gethostbyname(socket.gethostname()):
+                sock.send(b" ")
                 continue
             else:
                 print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
