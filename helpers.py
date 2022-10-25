@@ -1,10 +1,12 @@
 import datetime
 import sys
+import msvcrt
+import time
 
 
 def signal_handler(sig, frame):
     print('Выполнение программы прервано пользователем!')
-    sys.exit(0)
+    raise KeyboardInterrupt
 
 
 def print_message(text: str):
@@ -14,13 +16,15 @@ def print_message(text: str):
 
 
 def input_message(print_mes: str):
-    is_ok = True
+    starttime = time.time()
     mes = ""
-    try:
-        while not mes:
+    while time.time() - starttime < 1:
+        if msvcrt.kbhit():
             mes = input(print_mes + " -> ")
-    except KeyboardInterrupt:
-        print_message("Выполнение программы принудительно остановлено пользователем...")
+            break
+
+    is_ok = True
+    if not mes:
         is_ok = False
 
     return mes, is_ok

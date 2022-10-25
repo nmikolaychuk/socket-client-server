@@ -69,34 +69,22 @@ def tcp_client_start():
     print_message(f"Установлено соединение с сервером {host}:{port}...")
     # Отправка первого сообщения
     input_and_send(sock)
-    while True:
-        # Отправка сообщения серверу
-        try:
-            sock.settimeout(1)
-            data = sock.recv(1024)
+    try:
+        while True:
+            # Отправка сообщения серверу
+            try:
+                sock.settimeout(1)
+                data = sock.recv(1024)
 
-            if not data:
-                raise ConnectionError
+                if not data:
+                    raise ConnectionError
 
-            # Декодирование сообщения
-            data = data.decode()
-            print_message(f"Получен ответ от сервера {host}:{port}: {data}")
-            input_and_send(sock)
-
-        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError):
-            print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
-            # Попытка переподключения
-            sock, is_recon_true = reconnect(sock, host, port)
-            # Если переподключение выполнено успешно - продолжение взаимодействия
-            if is_recon_true:
+                # Декодирование сообщения
+                data = data.decode()
+                print_message(f"Получен ответ от сервера {host}:{port}: {data}")
                 input_and_send(sock)
-                continue
-            break
-        except TimeoutError:
-            if sock.getsockname()[0] == socket.gethostbyname(socket.gethostname()):
-                sock.send(b" ")
-                continue
-            else:
+
+            except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError):
                 print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
                 # Попытка переподключения
                 sock, is_recon_true = reconnect(sock, host, port)
@@ -105,8 +93,23 @@ def tcp_client_start():
                     input_and_send(sock)
                     continue
                 break
-
-    sock.close()
+            except TimeoutError:
+                if sock.getsockname()[0] == socket.gethostbyname(socket.gethostname()):
+                    sock.send(b" ")
+                    continue
+                else:
+                    print_message("Произошёл разрыв установленного соединения. Сообщение не доставлено...")
+                    # Попытка переподключения
+                    sock, is_recon_true = reconnect(sock, host, port)
+                    # Если переподключение выполнено успешно - продолжение взаимодействия
+                    if is_recon_true:
+                        input_and_send(sock)
+                        continue
+                    break
+    except KeyboardInterrupt:
+        sock.close()
+    else:
+        sock.close()
 
 
 def main():

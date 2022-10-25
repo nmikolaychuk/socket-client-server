@@ -13,32 +13,33 @@ def udp_server_start():
 
     print_message("Сервер успешно запущен. Ожидаются UDP-сообщения...")
     addr = None
-    while True:
-        try:
-            # Получение сообщения по UDP
-            sock.settimeout(1.)
-            data, addr = sock.recvfrom(1024)
-        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError):
-            pass
-        else:
-            # Декодирование сообщения
-            data = data.decode()
-            print_message(f"Получено сообщение {addr[1]}: {data}")
 
-        if addr is not None:
+    try:
+        while True:
             try:
-                # Формирование ответного сообщения
-                mes, is_ok = input_message("Введите сообщение для отправления")
-                if not is_ok:
-                    break
-
-                # Отправка UDP сообщения
-                sock.sendto(mes.encode(), addr)
-            except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError,
-                    ConnectionResetError, TimeoutError, TypeError):
+                # Получение сообщения по UDP
+                sock.settimeout(1.)
+                data, addr = sock.recvfrom(1024)
+            except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError):
                 pass
+            else:
+                # Декодирование сообщения
+                data = data.decode()
+                if data:
+                    print_message(f"Получено сообщение {addr[1]}: {data}")
 
-    sock.close()
+            if addr is not None:
+                try:
+                    # Формирование ответного сообщения
+                    mes, is_ok = input_message("Введите сообщение для отправления")
+                    if mes:
+                        # Отправка UDP сообщения
+                        sock.sendto(mes.encode(), addr)
+                except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError,
+                        ConnectionResetError, TimeoutError, TypeError):
+                    pass
+    except KeyboardInterrupt:
+        sock.close()
 
 
 def main():
