@@ -1,47 +1,49 @@
 import socket
+import signal
 
 from defaults import *
-from helpers import print_message, input_message
+from helpers import print_message, input_message, signal_handler
 
 
 def udp_server_start():
     # Получение адреса сервера
     host = socket.gethostbyname(socket.gethostname())
-    # Создание сокета
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # Привязка сокета
-    sock.bind((host, PORT))
+    sock.bind((host, UDP_PORT))
 
     print_message("Сервер успешно запущен. Ожидаются UDP-сообщения...")
-
+    addr = None
     while True:
         try:
-            # Получение сообщения от клиента по UDP
+            # Получение сообщения по UDP
+            sock.settimeout(1.)
             data, addr = sock.recvfrom(1024)
+        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError):
+            pass
+        else:
             # Декодирование сообщения
             data = data.decode()
-        except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError):
-            print_message(f"Не удалось отправить сообщение. Произошёл разрыв соединения...")
-            continue
+            print_message(f"Получено сообщение {addr[1]}: {data}")
 
-        print_message(f"Получено сообщение от клиента {addr[1]}: {data}")
+        if addr is not None:
+            try:
+                # Формирование ответного сообщения
+                mes, is_ok = input_message("Введите сообщение для отправления")
+                if not is_ok:
+                    break
 
-        # Формирование ответного сообщения
-        mes, is_ok = input_message("Введите ответ для клиента")
-        if not is_ok:
-            break
-
-        # Отправка UDP сообщения
-        sock.sendto(mes.encode(), addr)
+                # Отправка UDP сообщения
+                sock.sendto(mes.encode(), addr)
+            except (ConnectionAbortedError, ConnectionError, ConnectionRefusedError,
+                    ConnectionResetError, TimeoutError, TypeError):
+                pass
 
     sock.close()
 
 
 def main():
-    try:
-        udp_server_start()
-    except KeyboardInterrupt:
-        print_message("Исполнение программы остановлено пользователем...")
+    signal.signal(signal.SIGINT, signal_handler)
+    udp_server_start()
 
 
 if __name__ == "__main__":
